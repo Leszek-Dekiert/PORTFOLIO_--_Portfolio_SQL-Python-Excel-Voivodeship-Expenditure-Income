@@ -6,6 +6,7 @@
 --data_for_sql.xlsx file
 
 
+
 --Following is a presentation of SQL Sever skills
 --Data loaded into this database originally comes from GUS BDL (https://bdl.stat.gov.pl/bdl/dane/podgrup/temat)
 --Raw data has been previously converted using Excel and Python
@@ -161,7 +162,7 @@ EXEC sp_rename 'dbo.Wydatki_z_budżetu$.F4', 'Budget_expenditure', 'COLUMN';
 
 UPDATE dbo.Dochody_ogółem_Klasyfikacja$
    SET Income_total_classification = NULL
- WHERE Income_total_classification = '-' or Income_total_classification = '0,00'
+ WHERE Income_total_classification = '-' or Income_total_classification = '0,00' or Income_total_classification = '0'
 GO
 SELECT * FROM Dochody_ogółem_Klasyfikacja$
 
@@ -369,19 +370,19 @@ SET @IncomePersonPL2023 = (SELECT Income_per_capita FROM Dochody_na_1_mieszkańc
 
 IF @IncomePL2002/@PopulationPL2002 = @IncomePersonPL2002
 	BEGIN
-		PRINT 'Data on population and total expenditure obtained from the GUS BDL when divided return the result of expenditure per capita value from GUS BDL'
+		PRINT 'Data on population and total expenditure obtained from the GUS BDL when divided returns the result of expenditure per capita value from GUS BDL'
 		PRINT 'Data on expenditure per capita from GUS BDL is correct'
 	END
 ELSE
 	BEGIN
 		PRINT 'Data for 2002 on population and total expenditure obtained from the GUS BDL when divided DOES NOT return the result of expenditure per capita value from GUS BDL.'
 		PRINT 'Data for 2002 on expenditure per capita from GUS BDL is incorrect.'
-		PRINT 'The difference between own calculations and the 2002 GUS BDL data = ' + CAST(((@IncomePL2023/@PopulationPL2023) - @IncomePersonPL2023) AS VARCHAR)
+		PRINT 'The difference between own calculations and the 2002 GUS BDL data = ' + CAST(((@IncomePL2002/@PopulationPL2002) - @IncomePersonPL2002) AS VARCHAR)
 	END
 
 IF @IncomePL2023/@PopulationPL2023 = @IncomePersonPL2023
 	BEGIN
-		PRINT 'Data for 2023 on population and total expenditure obtained from the GUS BDL when divided return the result of expenditure per capita value from GUS BDL'
+		PRINT 'Data for 2023 on population and total expenditure obtained from the GUS BDL when divided returns the result of expenditure per capita value from GUS BDL'
 		PRINT 'Data for 2023 on expenditure per capita from GUS BDL is CORRECT'
 	END
 ELSE
@@ -570,7 +571,7 @@ JOIN Dochody_na_1_mieszkańca$_RandomColumn AS r ON d.Ex1In1ID = r.Ex1In1ID
 DROP TABLE Dochody_na_1_mieszkańca$_RandomColumn
 
 
---BEGIN TRANSACTION / ROLLBACK / COMMIT / OVER
+--BEGIN TRANSACTION / ROLLBACK / COMMIT / COMMIT (with a mistake) / OVER
 
 
 BEGIN TRANSACTION
@@ -605,6 +606,16 @@ COMMIT
 ALTER TABLE Dochody_budżetów_województw$
 DROP COLUMN Budget_income_thousands, Budget_income_millions, Budget_income_billions
 SELECT * FROM Dochody_budżetów_województw$
+
+BEGIN TRANSACTION
+	INSERT INTO Dochody_budżetów_województw$
+	([Code],[Voivodeship],[Year],[Budget_income]) VALUES (3400000,'SEVENTEENTH VOIVODESHIP',2024,999)
+	UPDATE Dochody_budżetów_województw$
+	SET Budget_income = 111 WHERE Voivodeship = 'SEVENTEENTH VOIVODESHIP'
+	--Mistake below (no UPDATE)
+	SET Voivodeship = '17 VOIVODESHIP' WHERE Budget_income = 111
+	SELECT * FROM Dochody_budżetów_województw$
+COMMIT
 
 
 --Subqueries / EXISTS / ALL / SOME / ANY
@@ -646,54 +657,54 @@ SELECT * FROM Wydatki_na_1_mieszkańca$
 SELECT * FROM Wydatki_z_budżetu$
 
 
---UNION / UNION ALL / INTERSECT / EXCERPT
+--UNION / UNION ALL / INTERSECT / EXCEPT
 
 
 SELECT *
-INTO Wydatki_ogółem_Klasyfikacja$_2002_to_2012
+INTO Wydatki_ogółem_Klasyfikacja$_2008_to_2012
 FROM Wydatki_ogółem_Klasyfikacja$
 
 SELECT *
 INTO Wydatki_ogółem_Klasyfikacja$_2013_to_2023
 FROM Wydatki_ogółem_Klasyfikacja$
 
-DELETE FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2012 WHERE [Year] > 2012
+DELETE FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2012 WHERE [Year] > 2012
 DELETE FROM Wydatki_ogółem_Klasyfikacja$_2013_to_2023 WHERE [Year] <= 2012
 
-SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2012
+SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2012
 UNION
 SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2013_to_2023
 ORDER BY [Year] ASC
 
 SELECT *
-INTO Wydatki_ogółem_Klasyfikacja$_2002_to_2013
+INTO Wydatki_ogółem_Klasyfikacja$_2008_to_2013
 FROM Wydatki_ogółem_Klasyfikacja$
 
 SELECT *
 INTO Wydatki_ogółem_Klasyfikacja$_2011_to_2023
 FROM Wydatki_ogółem_Klasyfikacja$
 
-DELETE FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2013 WHERE [Year] > 2013
+DELETE FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2013 WHERE [Year] > 2013
 DELETE FROM Wydatki_ogółem_Klasyfikacja$_2011_to_2023 WHERE [Year] <= 2011
 
-SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2013
+SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2013
 UNION ALL
 SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2011_to_2023
 ORDER BY [Year] ASC
 
-SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2013
+SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2013
 INTERSECT
 SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2011_to_2023
 ORDER BY [Year] ASC
 
-SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2002_to_2013
+SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2008_to_2013
 EXCEPT
 SELECT * FROM Wydatki_ogółem_Klasyfikacja$_2011_to_2023
 ORDER BY [Year] ASC
 
-DROP TABLE Wydatki_ogółem_Klasyfikacja$_2002_to_2013
+DROP TABLE Wydatki_ogółem_Klasyfikacja$_2008_to_2013
 DROP TABLE Wydatki_ogółem_Klasyfikacja$_2011_to_2023
-DROP TABLE Wydatki_ogółem_Klasyfikacja$_2002_to_2012
+DROP TABLE Wydatki_ogółem_Klasyfikacja$_2008_to_2012
 DROP TABLE Wydatki_ogółem_Klasyfikacja$_2013_to_2023
 
 
